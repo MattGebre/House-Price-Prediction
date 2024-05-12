@@ -1,0 +1,164 @@
+---
+title: "House Prediction Report"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+date: "2024-04-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(corrplot)
+library(lubridate)
+library(readr)
+library(caTools)
+library(GGally)
+library(caret)
+library(leaps)
+library(zoo)
+
+```
+
+```{r}
+train_data <- read.csv("C:/Users/matt1/OneDrive/Desktop/MTH404/House Prices Data/train.csv")
+test_data <- read.csv("C:/Users/matt1/OneDrive/Desktop/MTH404/House Prices Data/test.csv")
+head(train_data)
+head(test_data)
+summary(train_data)
+```
+## DATA DESCRIPTION
+The data contains about 80 independent variables, with the dependent variable being the sales price. In total there are 1460 observations.
+
+```{r}
+NA_values <- data.frame(no_of_na_values=colSums(is.na(train_data)))
+head(NA_values,80)
+```
+There are several missing values in the data, most notably Alley, PoolQC, Fence, and MiscFeature. We will drop these features with the most missing values.
+
+```{r}
+train_data <- train_data[, -c(7, 60, 73, 74, 75)]
+head(train_data)
+```
+For the rest of the missing values, we will use the mode to estimate them. For LotFrontage, we will use the mean for a better estimate.
+
+```{r}
+mode_value <- names(sort(table(train_data$BsmtCond), decreasing = TRUE))[1]
+train_data$BsmtCond <- ifelse(is.na(train_data$BsmtCond), mode_value, train_data$BsmtCond)
+mode_value2 <- names(sort(table(train_data$BsmtQual), decreasing = TRUE))[1]
+train_data$BsmtQual <- ifelse(is.na(train_data$BsmtQual), mode_value2, train_data$BsmtQual)
+mode_value3 <- names(sort(table(train_data$GarageType), decreasing = TRUE))[1]
+train_data$GarageType <- ifelse(is.na(train_data$GarageType), mode_value3, train_data$GarageType)
+mode_value4 <- names(sort(table(train_data$GarageQual), decreasing = TRUE))[1]
+train_data$GarageQual <- ifelse(is.na(train_data$GarageQual), mode_value4, train_data$GarageQual)
+mode_value5 <- names(sort(table(train_data$GarageCond), decreasing = TRUE))[1]
+train_data$GarageCond <- ifelse(is.na(train_data$GarageCond), mode_value5, train_data$GarageCond)
+mode_value6 <- names(sort(table(train_data$GarageFinish), decreasing = TRUE))[1]
+train_data$GarageFinish <- ifelse(is.na(train_data$GarageFinish), mode_value6, train_data$GarageFinish)
+mode_value7 <- names(sort(table(train_data$FireplaceQu), decreasing = TRUE))[1]
+train_data$FireplaceQu <- ifelse(is.na(train_data$FireplaceQu), mode_value7, train_data$FireplaceQu)
+train_data$LotFrontage <- na.aggregate(train_data$LotFrontage, FUN = mean, na.rm = TRUE)
+head(train_data)
+```
+## EXPLORATORY DATA ANALYSIS
+We start off by creating a boxplot and histogram of the data.
+
+```{r}
+boxplot(train_data$SalePrice)
+hist(train_data$SalePrice)
+```
+The price is skewed to the right with several very high prices. Since the response is not normally distributed, we may consider to use neural network which does not need to use the normality assumption of the response, or use log transformation of the response.
+
+Next we will create a correlation plot to determine the association between the dependent variable SalesPrice and the independent variables.
+
+```{r}
+data_num <- train_data %>% dplyr::select(where(is.numeric))
+correlation <- cor(data_num)
+col <- colorRampPalette(c("#880000", "#FF8888", "#FFFFFF", "#88BBFF", "#000088")) # Darker blue and red
+corrplot(correlation, method = "color", col = col(200), tl.cex = 0.8, tl.col = "black")
+```
+From the correlation plot, we see the Overall Quality of a house (OverallQual) is most strongly correlated with the Sales Price. We may further analyze this relationship through a boxplot.
+
+```{r}
+ggplot(train_data, aes(x = as.factor(OverallQual), y = SalePrice)) +
+ geom_boxplot(fill = "skyblue") +
+ labs(x = "Overall Quality", y = "Sale Price") +
+ ggtitle("Boxplot of Sale Price by Overall Quality")
+```
+Let us now see the Scatter Plots and Regression Lines of a few other variables with respect to the Sale Price.
+
+```{r}
+ggplot(data = train_data, aes(x = GarageArea, y = SalePrice)) +
+  geom_jitter() +  geom_smooth(method = "lm", se = FALSE, color = 'red')+labs(title="Scatter plot of Garage Area and Price", x="Garage Area",y="Sale Price")
+```
+
+```{r}
+ggplot(data = train_data, aes(x = YearBuilt, y = SalePrice)) +
+  geom_jitter() +  geom_smooth(method = "lm", se = FALSE, color = 'red')+labs(title="Scatter plot of Year Built and Price", x="Year Built",y="Sale Price")
+```
+
+```{r}
+ggplot(train_data, aes(x = GrLivArea, y = SalePrice)) +
+ geom_point(color = "black", alpha = 0.5) +
+ geom_smooth(method = "lm", se = FALSE, color = "red") +
+ labs(x = "GrLivArea", y = "Sale Price") +
+ ggtitle("Scatter Plot of Sale Price by GrLivArea with Regression Line")
+```
+
+We see that we have a significantly large number of outliers on each plot.
+
+Treating or altering the outlier/extreme values in genuine observations is not a standard operating procedure. However, it is essential to understand their impact on our predictive models.
+
+To better understand the implications of outliers better, we should compare the fit of a simple linear regression model on the dataset with and without outliers. For this we first extract outliers from the data and then obtain the data without the outliers.
+```{r}
+outliers=boxplot(train_data$SalePrice,plot=FALSE)$out
+outliers_data=train_data[which(train_data$SalePrice %in% outliers),]
+train_data1= train_data[-which(train_data$SalePrice %in% outliers),]
+```
+
+Using the GrLivArea variable, which is strongly correlated with Sales Price, we can demonstrate the impact of outliers in the data
+
+```{r}
+q1 <- quantile(train_data$GrLivArea, 0.25)
+q3 <- quantile(train_data$GrLivArea, 0.75)
+iqr <- q3 - q1
+lower_bound <- q1 - 1.5 * iqr
+upper_bound <- q3 + 1.5 * iqr
+filtered_data <- train_data %>%
+filter(GrLivArea >= lower_bound & GrLivArea <= upper_bound)
+```
+
+```{r}
+ggplot(filtered_data, aes(x = GrLivArea, y = SalePrice)) +
+ geom_point(color = "black", alpha = 0.5) +
+ geom_smooth(method = "lm", se = FALSE, color = "red") + # Add regression line
+ labs(x = "GrLivArea", y = "Sale Price") +
+ ggtitle("Scatter Plot of Sale Price by GrLivArea with Regression Line (Outliers Removed)")
+```
+##Modelling
+
+From here, we can clean our data and create our regression model
+
+```{r}
+cleaned_data <- na.omit(train_data) 
+cleaned_data <- as.data.frame(model.matrix(~ . - 1, data = cleaned_data))
+lm_model <- lm(SalePrice ~ ., data = cleaned_data)
+summary(lm_model)
+```
+The adjusted R squared value is 0.914, indicating that 91.4% of the variability can be explained by the model. Finally, we can calculate the MSE (mean square error)
+
+```{r}
+residuals <- residuals(lm_model)
+RMSE <- sqrt(mean(residuals^2))
+RMSE
+```
+```{r}
+x <- model.matrix(SalePrice ~ . - 1, data = train_data) %>% scale ()
+y <- train_data$SalePrice
+```
+
+In conclusion, with an adjusted R squared value of 0.914, the model has a strong fit to the data, meaning the variables chosen are good indicators of the price of a house. 

@@ -6,66 +6,41 @@ This project involves building a robust predictive model to estimate residential
 
 ## Key Technical Features
 
-* 
-**Statistical Foundation:** Leveraged **Linear Regression** and **Model Selection** techniques to identify the most significant drivers of property value.
+* **Statistical Foundation:** Leveraged **Linear Regression** and **Model Selection** techniques to identify the most significant drivers of property value.
 
-
-* 
-**Automated Feature Selection:** Utilized the `leaps` and `caret` libraries to perform subset selection, ensuring the final model balances complexity with predictive power.
-
-
-* 
-**Comprehensive EDA:** Conducted deep-dive analysis into variables like `OverallQual`, `GrLivArea`, and `YearBuilt` to understand their correlation with `SalePrice`.
+* **Automated Feature Selection:** Utilized the `leaps` and `caret` libraries to perform subset selection, ensuring the final model balances complexity with predictive power.
+  
+* **Comprehensive EDA:** Conducted deep-dive analysis into variables like `OverallQual`, `GrLivArea`, and `YearBuilt` to understand their correlation with `SalePrice`.
 
 
 
 ## Tech Stack
 
 * **Language:** R
-* 
-**Data Manipulation:** `tidyverse` (dplyr, tidyr, readr) 
-
-
-* 
-**Visualization:** `ggplot2`, `corrplot`, `GGally` 
-
-
-* 
-**Machine Learning:** `caret`, `caTools`, `leaps` 
-
-
-* 
-**Time-Series/Logistics:** `lubridate`, `zoo` 
+* **Data Manipulation:** `tidyverse` (dplyr, tidyr, readr) 
+* **Visualization:** `ggplot2`, `corrplot`, `GGally` 
+* **Machine Learning:** `caret`, `caTools`, `leaps` 
+* **Time-Series/Logistics:** `lubridate`, `zoo` 
 
 
 
 ## Methodology
 
-1. 
-**Data Ingestion & Cleaning:** Loaded training and test datasets, handling missing values in critical features like `LotFrontage` and `MasVnrArea`.
+1. **Data Ingestion & Cleaning:** Loaded training and test datasets, handling missing values in critical features like `LotFrontage` and `MasVnrArea`.
 
+2. **Statistical Profiling:** Used `summary()` and `head()` functions to identify data types, distributions, and potential outliers in the 81 available features.
 
-2. 
-**Statistical Profiling:** Used `summary()` and `head()` functions to identify data types, distributions, and potential outliers in the 81 available features.
+3. **Variable Correlation:** Analyzed the relationship between categorical features (e.g., `Neighborhood`, `SaleCondition`) and numerical features (e.g., `TotalBsmtSF`, `GarageArea`) to refine the feature set.
 
-
-3. 
-**Variable Correlation:** Analyzed the relationship between categorical features (e.g., `Neighborhood`, `SaleCondition`) and numerical features (e.g., `TotalBsmtSF`, `GarageArea`) to refine the feature set.
-
-
-4. 
-**Model Training:** Employed `caTools` for data splitting and `caret` for cross-validation and model training.
+4. **Model Training:** Employed `caTools` for data splitting and `caret` for cross-validation and model training.
 
 
 
 ## Key Insights
 
-* 
-**Quality Metrics:** Features like `OverallQual` and `OverallCond` proved to be among the strongest predictors of sale price.
+* **Quality Metrics:** Features like `OverallQual` and `OverallCond` proved to be among the strongest predictors of sale price.
 
-
-* 
-**Spatial Analysis:** Geographic factors (Neighborhood) and property age (YearBuilt/YearRemodAdd) significantly influenced the final valuation.
+* **Spatial Analysis:** Geographic factors (Neighborhood) and property age (YearBuilt/YearRemodAdd) significantly influenced the final valuation.
 
 
 
